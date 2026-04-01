@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@rive-app/canvas": "^2.36.0"
+  },
+  "devDependencies": {
+    "vite": "^8.0.3"
+  }
+}
