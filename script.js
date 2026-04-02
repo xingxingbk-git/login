@@ -1,11 +1,11 @@
 // script.js
-import * as rive from '@rive-app/canvas';
+import { Rive } from '@rive-app/canvas';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Rive animation
     const canvas = document.getElementById('riveCanvas');
-    const r = new rive.Rive({
-        src: 'riv/插画.riv',
+    const r = new Rive({
+        src: './riv/插画.riv', // 使用相对路径，适配 GitHub Pages 部署
         canvas: canvas,
         autoplay: true,
         onLoad: () => {
