@@ -1,5 +1,5 @@
 // script.js
-import { Rive } from '@rive-app/canvas';
+import { Rive, Layout, Fit, Alignment } from '@rive-app/canvas';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Rive animation
@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', function() {
         src: './riv/插画.riv', // 使用相对路径，适配 GitHub Pages 部署
         canvas: canvas,
         autoplay: true,
+        // 使用 Layout 告诉 Rive 引擎如何自适应这个 canvas
+        // fit: Fit.Cover 会保证动画内容充满容器，类似 css 的 object-fit: cover
+        layout: new Layout({
+            fit: Fit.Cover,
+            alignment: Alignment.Center,
+        }),
         onLoad: () => {
             r.resizeDrawingSurfaceToCanvas();
         },
@@ -18,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (r) {
             r.resizeDrawingSurfaceToCanvas();
         }
+        if (eyeRive) {
+            eyeRive.resizeDrawingSurfaceToCanvas();
+        }
     });
 
     const loginForm = document.getElementById('loginForm');
@@ -25,22 +34,63 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const togglePassword = document.getElementById('togglePassword');
     const rememberCheckbox = document.getElementById('remember');
+
+    // Initialize Eyes Rive animation
+    const eyeCanvas = document.getElementById('eyeCanvas');
+    let displayInput = null;
+    const eyeRive = new Rive({
+        src: './riv/eyes.riv',
+        canvas: eyeCanvas,
+        stateMachines: 'State Machine 1', // 保证正常运行状态机
+        autoplay: true,
+        // 自动绑定默认的视图模型（如果有的话）
+        autoBind: true,
+        onLoad: () => {
+            eyeRive.resizeDrawingSurfaceToCanvas();
+            
+            // 获取名为 'Eyes' 的视图模型 (ViewModel)
+            const viewModel = eyeRive.viewModelByName('Eyes');
+            if (viewModel) {
+                // 获取视图模型的默认实例并绑定到画板
+                const instance = viewModel.defaultInstance();
+                eyeRive.bindViewModelInstance(instance);
+                
+                // 从视图模型实例中获取名为 'display' 的布尔值
+                displayInput = instance.boolean('display');
+                
+                // 初始状态根据密码框类型设置
+                if (displayInput) {
+                    const type = passwordInput.getAttribute('type');
+                    displayInput.value = (type === 'text');
+                }
+            }
+        },
+    });
     
+    // 监听全局鼠标移动，传递给 eyeCanvas 以触发 Rive 内部的“跟随触发区域”监听器
+    window.addEventListener('mousemove', (e) => {
+        // 阻止我们自己派发的合成事件再次触发该监听器，防止无限递归
+        if (!e.isTrusted) return;
+
+        if (eyeCanvas) {
+            // 构造一个合成的鼠标移动事件并派发到 eyeCanvas
+            // Rive 引擎内部已在 canvas 上绑定了 mousemove 监听，这会触发对齐目标
+            const fakeEvent = new MouseEvent('mousemove', {
+                clientX: e.clientX,
+                clientY: e.clientY,
+                bubbles: false // 取消冒泡，防止事件循环
+            });
+            eyeCanvas.dispatchEvent(fakeEvent);
+        }
+    });
+
     togglePassword.addEventListener('click', function() {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
         
-        const svg = togglePassword.querySelector('.eye-icon');
-        if (type === 'text') {
-            svg.innerHTML = `
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                <line x1="1" y1="1" x2="23" y2="23"></line>
-            `;
-        } else {
-            svg.innerHTML = `
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-            `;
+        // 切换时更新视图模型中的布尔值
+        if (displayInput) {
+            displayInput.value = (type === 'text');
         }
     });
     

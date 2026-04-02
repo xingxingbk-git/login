@@ -25,9 +25,8 @@ body {
 
 /* 左侧插画 */
 .illustration-section {
-    flex: 0 0 auto; /* 不要让它按比例缩小 */
-    width: auto; /* 根据内容自适应宽度 */
-    min-width: 50%; /* 至少占据一半 */
+    flex: 1 1 50%; /* 允许随着窗口缩小按比例缩小，基础占据50%的宽度 */
+    max-width: 60%; /* 限制其最大宽度，不要过度挤占表单 */
     background-color: #E7E3E6;
     position: relative;
     display: flex;
@@ -37,10 +36,9 @@ body {
 }
 
 #riveCanvas {
-    height: 100%; /* 高度填满 */
-    width: auto; /* 宽度等比放大 */
-    aspect-ratio: 9 / 8; /* 保持设计稿原始比例 (900/800) */
-    object-fit: cover;
+    width: 100%; /* 宽度100%填满父容器 */
+    height: 100%; /* 高度100%填满父容器 */
+    /* 移除了 aspect-ratio 强制比例和 width: auto，允许容器缩小 */
 }
 
 /* 右侧表单 */
@@ -137,6 +135,12 @@ body {
     align-items: center;
     justify-content: center;
     padding: 8px;
+}
+
+.eye-icon {
+    width: 24px;
+    height: 24px;
+    pointer-events: none; /* 确保点击事件能穿透到外层的 button 上 */
 }
 
 .form-options {
@@ -245,16 +249,15 @@ body {
     .login-container {
         flex-direction: column;
         height: auto;
-        max-height: none;
+        min-height: 100vh; /* 在手机端确保填满屏幕高度 */
     }
     
     .illustration-section {
-        width: 100%;
-        height: 400px;
-        flex: none;
+        display: none; /* 在屏幕变窄时直接隐藏动画插画 */
     }
 
     .form-section {
+        flex: 1; /* 占据整个屏幕空间 */
         padding: 60px 20px;
     }
     
