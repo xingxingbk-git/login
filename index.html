@@ -29,11 +29,13 @@
 
                 <form id="loginForm" class="login-form">
                     <div class="input-group">
-                        <input type="email" id="email" placeholder="Email" required>
+                        <input type="email" id="email" placeholder=" " required>
+                        <label for="email" class="floating-label">Email</label>
                     </div>
 
-                    <div class="input-group">
-                        <input type="password" id="password" placeholder="Password" required>
+                    <div class="input-group" id="passwordGroup">
+                        <input type="password" id="password" placeholder=" " required>
+                        <label for="password" class="floating-label">Password</label>
                         <button type="button" class="toggle-password" id="togglePassword">
                             <canvas id="eyeCanvas" width="24" height="24" class="eye-icon"></canvas>
                         </button>

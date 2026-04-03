@@ -59,9 +59,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayInput = instance.boolean('display');
                 
                 // 初始状态根据密码框类型设置
+                // display 值为 true 时，密码是隐藏的 (password)；false 时，密码是显示的 (text)
                 if (displayInput) {
                     const type = passwordInput.getAttribute('type');
-                    displayInput.value = (type === 'text');
+                    displayInput.value = (type === 'password');
                 }
             }
         },
@@ -89,11 +90,20 @@ document.addEventListener('DOMContentLoaded', function() {
         passwordInput.setAttribute('type', type);
         
         // 切换时更新视图模型中的布尔值
+        // display 值为 true 时，密码是隐藏的 (password)
         if (displayInput) {
-            displayInput.value = (type === 'text');
+            displayInput.value = (type === 'password');
         }
     });
     
+    // 当密码重新输入时，清除错误状态
+    passwordInput.addEventListener('input', function() {
+        const passwordGroup = document.getElementById('passwordGroup');
+        if (passwordGroup && passwordGroup.classList.contains('error-state')) {
+            passwordGroup.classList.remove('error-state', 'shake-animation');
+        }
+    });
+
     loginForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -109,6 +119,21 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please enter your password');
             return;
         }
+        
+        // 模拟密码错误交互
+        const passwordGroup = document.getElementById('passwordGroup');
+        
+        // 移除可能存在的动画类，以便能够重新触发
+        passwordGroup.classList.remove('shake-animation');
+        
+        // 强制浏览器重绘 (Reflow)，以重新触发动画
+        void passwordGroup.offsetWidth;
+        
+        // 添加错误状态和晃动动画
+        passwordGroup.classList.add('error-state', 'shake-animation');
+        
+        // 中断登录流程，模拟一直失败的效果
+        return;
         
         if (rememberCheckbox.checked) {
             localStorage.setItem('rememberMe', 'true');
