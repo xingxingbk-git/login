@@ -4,10 +4,38 @@ import { Rive, Layout, Fit, Alignment } from '@rive-app/canvas';
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Rive animation
     const canvas = document.getElementById('riveCanvas');
+    let statusInput = null;
+    let correctTrigger = null;
+    let wrongTrigger = null;
+
+    function updateIllustrationStatus() {
+        if (!statusInput) return;
+        const passwordInputType = document.getElementById('password').getAttribute('type');
+        const activeElement = document.activeElement;
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+
+        if (passwordInputType === 'text') {
+            statusInput.value = 2;
+        } else if (activeElement === emailInput || activeElement === passwordInput) {
+            statusInput.value = 1;
+        } else {
+            statusInput.value = 0;
+        }
+    }
+
+    function validateEmailFormat(email) {
+        // 匹配常见的后缀，比如 @qq.com 或 @gmail.com 等，要求顶级域名至少2个字母
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+    }
+
     const r = new Rive({
-        src: './riv/插画.riv', // 使用相对路径，适配 GitHub Pages 部署
+        src: '/riv/插画.riv', // 使用绝对路径适配 Vite 的 public 目录
         canvas: canvas,
+        stateMachines: 'State Machine 1',
         autoplay: true,
+        autoBind: true,
         // 使用 Layout 告诉 Rive 引擎如何自适应这个 canvas
         // fit: Fit.Cover 会保证动画内容充满容器，类似 css 的 object-fit: cover
         layout: new Layout({
@@ -16,6 +44,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }),
         onLoad: () => {
             r.resizeDrawingSurfaceToCanvas();
+
+            // 尝试获取名为 'Login' 的视图模型 (ViewModel)
+            const viewModel = r.viewModelByName('Login');
+            if (viewModel) {
+                const instance = viewModel.defaultInstance();
+                r.bindViewModelInstance(instance);
+                
+                statusInput = instance.number('status');
+                correctTrigger = instance.trigger('correct');
+                wrongTrigger = instance.trigger('wrong');
+            }
+
+            // Fallback: 如果触发器没有在 ViewModel 中获取到，可能是它们作为状态机输入(State Machine Inputs) 存在的
+            const inputs = r.stateMachineInputs('State Machine 1');
+            if (inputs) {
+                if (!statusInput) statusInput = inputs.find(i => i.name === 'status');
+                if (!correctTrigger) correctTrigger = inputs.find(i => i.name === 'correct');
+                if (!wrongTrigger) wrongTrigger = inputs.find(i => i.name === 'wrong');
+            }
+
+            console.log('Rive variables loaded:', {
+                status: !!statusInput,
+                correct: !!correctTrigger,
+                wrong: !!wrongTrigger
+            });
+
+            updateIllustrationStatus();
         },
     });
 
@@ -35,11 +90,40 @@ document.addEventListener('DOMContentLoaded', function() {
     const togglePassword = document.getElementById('togglePassword');
     const rememberCheckbox = document.getElementById('remember');
 
+    // 辅助函数：安全地触发 Rive Trigger (兼容 ViewModel 触发器和状态机输入)
+    function fireTrigger(t) {
+        if (!t) return;
+        if (typeof t.trigger === 'function') {
+            t.trigger(); // ViewModel 触发器的方法
+        } else if (typeof t.fire === 'function') {
+            t.fire();    // 状态机输入的触发方法
+        }
+    }
+
+    // Add listeners for illustration status updates
+    emailInput.addEventListener('focus', updateIllustrationStatus);
+    
+    emailInput.addEventListener('input', () => {
+        const email = emailInput.value.trim();
+        
+        if (validateEmailFormat(email)) {
+            // 只要格式正确就触发 correct
+            fireTrigger(correctTrigger);
+        }
+    });
+
+    emailInput.addEventListener('blur', () => {
+        updateIllustrationStatus();
+    });
+
+    passwordInput.addEventListener('focus', updateIllustrationStatus);
+    passwordInput.addEventListener('blur', updateIllustrationStatus);
+
     // Initialize Eyes Rive animation
     const eyeCanvas = document.getElementById('eyeCanvas');
     let displayInput = null;
     const eyeRive = new Rive({
-        src: './riv/eyes.riv',
+        src: '/riv/eyes.riv', // 使用绝对路径适配 Vite 的 public 目录
         canvas: eyeCanvas,
         stateMachines: 'State Machine 1', // 保证正常运行状态机
         autoplay: true,
@@ -68,20 +152,27 @@ document.addEventListener('DOMContentLoaded', function() {
         },
     });
     
-    // 监听全局鼠标移动，传递给 eyeCanvas 以触发 Rive 内部的“跟随触发区域”监听器
+    // 监听全局鼠标移动，传递给 eyeCanvas 和 主插画 canvas 以触发 Rive 内部的“跟随触发区域”监听器
     window.addEventListener('mousemove', (e) => {
         // 阻止我们自己派发的合成事件再次触发该监听器，防止无限递归
         if (!e.isTrusted) return;
 
         if (eyeCanvas) {
-            // 构造一个合成的鼠标移动事件并派发到 eyeCanvas
-            // Rive 引擎内部已在 canvas 上绑定了 mousemove 监听，这会触发对齐目标
-            const fakeEvent = new MouseEvent('mousemove', {
+            const fakeEventEye = new MouseEvent('mousemove', {
                 clientX: e.clientX,
                 clientY: e.clientY,
                 bubbles: false // 取消冒泡，防止事件循环
             });
-            eyeCanvas.dispatchEvent(fakeEvent);
+            eyeCanvas.dispatchEvent(fakeEventEye);
+        }
+        
+        if (canvas) {
+            const fakeEventMain = new MouseEvent('mousemove', {
+                clientX: e.clientX,
+                clientY: e.clientY,
+                bubbles: false 
+            });
+            canvas.dispatchEvent(fakeEventMain);
         }
     });
 
@@ -94,6 +185,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (displayInput) {
             displayInput.value = (type === 'password');
         }
+
+        // 更新插画的状态机 (如密码显示时 status 变为 2)
+        updateIllustrationStatus();
     });
     
     // 当密码重新输入时，清除错误状态
@@ -109,13 +203,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const email = emailInput.value.trim();
         const password = passwordInput.value;
+        const isEmailValid = validateEmailFormat(email);
         
-        if (!email) {
-            alert('Please enter your email');
+        if (!email || !isEmailValid) {
+            fireTrigger(wrongTrigger);
+            alert('Please enter a valid email (e.g., example@qq.com or example@gmail.com)');
             return;
         }
         
         if (!password) {
+            fireTrigger(wrongTrigger);
             alert('Please enter your password');
             return;
         }
@@ -132,6 +229,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // 添加错误状态和晃动动画
         passwordGroup.classList.add('error-state', 'shake-animation');
         
+        // 触发插画密码错误状态
+        fireTrigger(wrongTrigger);
+
         // 中断登录流程，模拟一直失败的效果
         return;
         
