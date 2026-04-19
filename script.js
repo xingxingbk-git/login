@@ -176,8 +176,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    togglePassword.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+    });
+    
     togglePassword.addEventListener('click', function() {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        const length = passwordInput.value.length;
+        
         passwordInput.setAttribute('type', type);
         
         // 切换时更新视图模型中的布尔值
@@ -188,6 +194,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 更新插画的状态机 (如密码显示时 status 变为 2)
         updateIllustrationStatus();
+        
+        // 保持密码输入框的焦点并强制将光标移到末尾
+        passwordInput.focus();
+        
+        // 使用 setTimeout 确保在 DOM 更新后再设置光标位置
+        setTimeout(function() {
+            passwordInput.setSelectionRange(length, length);
+        }, 0);
     });
     
     // 当密码重新输入时，清除错误状态
